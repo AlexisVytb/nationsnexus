@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pierre-Papier-Ciseaux</title>
+    <style>
+        body {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            margin: 0;
+            font-family: Arial, sans-serif;
+            background: linear-gradient(to right, #ece9e6, #ffffff);
+        }
+        h2 {
+            margin-top: 0;
+        }
+        #instructions {
+            margin-bottom: 20px;
+            font-size: 1.2em;
+            text-align: center;
+        }
+        #loading {
+            font-size: 2em;
+            display: none;
+        }
+        #result {
+            font-size: 1.5em;
+            margin-top: 20px;
+            text-align: center;
+        }
+        #resetButton {
+            display: none;
+            padding: 10px 20px;
+            margin-top: 20px;
+            border: none;
+            border-radius: 5px;
+            background-color: #4CAF50;
+            color: white;
+            font-size: 1em;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+        }
+        #resetButton:hover {
+            background-color: #45a049;
+        }
+        #backButton {
+			text-align: center
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            background-color: #4CAF50;
+            color: white;
+            font-size: 1em;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+        }
+        #backButton:hover {
+            background-color: #45a049;
+        }
+		#buttonpanique {
+            padding: 10px 20px;
+            margin: 5px;
+            border: none;
+            border-radius: 5px;
+            background-color: red;
+            color: white;
+            font-size: 1em;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+    </style>
+</head>
+<body>
+    <button id="backButton" onclick="window.history.back()">Retour</button>
+	<br>
+	<button id="backButton" onclick="redirectToPage()">BOUTON URGENCE PROF</button>
+	<br>
+	<br>
+    <h2>Pierre Papier Ciseaux - Techno</h2>
+    <div id="instructions">
+        Joueur 1: 1 = ✋ (Papier), 2 = ✊ (Pierre), 3 = ✌️ (Ciseaux) <br>
+		<br>
+        Joueur 2: 7 = ✋ (Papier), 8 = ✊ (Pierre), 9 = ✌️ (Ciseaux)
+    </div>
+    <div id="loading">Chargement...</div>
+    <div id="result"></div>
+    <button id="resetButton" onclick="resetGame()">Rejouer</button>
+    <script>
+        let player1Choice = null;
+        let player2Choice = null;
+
+        const choices = { '1': 'Papier', '2': 'Pierre', '3': 'Ciseaux', '7': 'Papier', '8': 'Pierre', '9': 'Ciseaux' };
+        const emojis = { 'Papier': '✋', 'Pierre': '✊', 'Ciseaux': '✌️' };
+
+        document.addEventListener('keydown', (event) => {
+            const key = event.key;
+            if (['1', '2', '3', '7', '8', '9'].includes(key)) {
+                if (['1', '2', '3'].includes(key)) {
+                    player1Choice = choices[key];
+                } else {
+                    player2Choice = choices[key];
+                }
+                if (player1Choice && player2Choice) {
+                    showLoading();
+                    setTimeout(() => {
+                        determineWinner();
+                    }, 2000); // 2 seconds loading time for suspense
+                }
+            }
+        });
+		
+		function redirectToPage() {
+            // Rediriger vers la page YouTube
+            window.location.href = "https://cad.onshape.com/documents?resourceType=resourceuserowner&nodeId=678e7761c6d3ea1e0613f154";
+            // Fermer la fenêtre actuelle
+            window.close();
+        }
+
+        function showLoading() {
+            document.getElementById('loading').style.display = 'block';
+        }
+
+        function hideLoading() {
+            document.getElementById('loading').style.display = 'none';
+        }
+
+        function determineWinner() {
+            hideLoading();
+            let result;
+
+            if (player1Choice === player2Choice) {
+                result = "Égalité!";
+            } else if (
+                (player1Choice === 'Pierre' && player2Choice === 'Ciseaux') ||
+                (player1Choice === 'Papier' && player2Choice === 'Pierre') ||
+                (player1Choice === 'Ciseaux' && player2Choice === 'Papier')
+            ) {
+                result = `Joueur 1 gagne! ${emojis[player1Choice]} (${player1Choice}) bat ${emojis[player2Choice]} (${player2Choice}).`;
+            } else {
+                result = `Joueur 2 gagne! ${emojis[player2Choice]} (${player2Choice}) bat ${emojis[player1Choice]} (${player1Choice}).`;
+            }
+
+            document.getElementById('result').innerHTML = `
+                <div>${emojis[player1Choice]} (${player1Choice}) VS ${emojis[player2Choice]} (${player2Choice})</div>
+                <div>${result}</div>
+            `;
+            document.getElementById('resetButton').style.display = 'block';
+        }
+
+        function resetGame() {
+            player1Choice = null;
+            player2Choice = null;
+            document.getElementById('result').innerHTML = '';
+            document.getElementById('resetButton').style.display = 'none';
+        }
+    </script>
+</body>
+</html>
