@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Puissance 4</title>
+    <style>
+        body {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            margin: 0;
+            font-family: Arial, sans-serif;
+            background: linear-gradient(to right, #ece9e6, #ffffff);
+        }
+        #connect4Board {
+            display: grid;
+            grid-template-columns: repeat(7, 50px);
+            grid-gap: 5px;
+        }
+        .cell {
+            width: 50px;
+            height: 50px;
+            border: 1px solid black;
+            background-color: white;
+            transition: background-color 0.5s ease;
+        }
+        .Red {
+            background-color: red;
+        }
+        .Yellow {
+            background-color: yellow;
+        }
+        button {
+            padding: 10px 20px;
+            margin: 5px;
+            border: none;
+            border-radius: 5px;
+            background-color: #4CAF50;
+            color: white;
+            font-size: 1em;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+        }
+        button:hover {
+            background-color: #45a049;
+        }
+        h2 {
+            margin-top: 0;
+        }
+        #winnerMessage {
+            margin-top: 20px;
+            font-size: 1.5em;
+            color: #333;
+        }
+		#buttonpanique {
+            padding: 10px 20px;
+            margin: 5px;
+            border: none;
+            border-radius: 5px;
+            background-color: red;
+            color: white;
+            font-size: 1em;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+    </style>
+</head>
+<body>
+    <button onclick="location.href='secrete.html'">Retour</button>
+	<button onclick="redirectToPage()">BOUTON URGENCE PROF</button>
+    <h2>Puissance 4 - Techno</h2>
+    <div id="connect4Board"></div>
+    <div id="winnerMessage"></div>
+    <button id="resetButton" style="display: none;" onclick="resetConnect4()">Rejouer</button>
+    <script>
+        const connect4Board = Array(6).fill(null).map(() => Array(7).fill(null));
+        const connect4Div = document.getElementById('connect4Board');
+        const winnerMessageDiv = document.getElementById('winnerMessage');
+        const resetButton = document.getElementById('resetButton');
+        let connect4CurrentPlayer = 'Red';
+		
+		function redirectToPage() {
+            // Rediriger vers la page YouTube
+            window.location.href = "https://cad.onshape.com/documents?resourceType=resourceuserowner&nodeId=678e7761c6d3ea1e0613f154";
+            // Fermer la fenêtre actuelle
+            window.close();
+        }
+
+        // Fonction pour dessiner le plateau de jeu
+        function drawConnect4Board() {
+            connect4Div.innerHTML = '';
+            for (let row = 0; row < connect4Board.length; row++) {
+                for (let col = 0; col < connect4Board[row].length; col++) {
+                    const cellDiv = document.createElement('div');
+                    cellDiv.classList.add('cell');
+                    if (connect4Board[row][col]) {
+                        cellDiv.classList.add(connect4Board[row][col]);
+                    }
+                    cellDiv.dataset.column = col;
+                    cellDiv.dataset.row = row;
+                    connect4Div.appendChild(cellDiv);
+                }
+            }
+        }
+
+        // Gère les clics sur le plateau de jeu
+        function handleConnect4Click(event) {
+            const column = event.target.dataset.column;
+            if (column !== undefined && !winnerMessageDiv.textContent) {
+                for (let row = connect4Board.length - 1; row >= 0; row--) {
+                    if (!connect4Board[row][column]) {
+                        dropPiece(row, column);
+                        break;
+                    }
+                }
+            }
+        }
+
+        // Ajoute une pièce au plateau de jeu
+        function dropPiece(row, column) {
+            connect4Board[row][column] = connect4CurrentPlayer;
+            drawConnect4Board();
+            if (checkConnect4Win(connect4CurrentPlayer)) {
+                winnerMessageDiv.textContent = `${connect4CurrentPlayer} a gagné!`;
+                resetButton.style.display = 'block';
+            } else {
+                connect4CurrentPlayer = connect4CurrentPlayer === 'Red' ? 'Yellow' : 'Red';
+            }
+        }
+
+        // Vérifie si un joueur a gagné
+        function checkConnect4Win(player) {
+            // Vérifie les conditions de victoire horizontale, verticale et diagonale
+            for (let row = 0; row < connect4Board.length; row++) {
+                for (let col = 0; col < connect4Board[0].length; col++) {
+                    if (checkDirection(row, col, 1, 0, player) || // Horizontal
+                        checkDirection(row, col, 0, 1, player) || // Vertical
+                        checkDirection(row, col, 1, 1, player) || // Diagonale descendante
+                        checkDirection(row, col, 1, -1, player)) { // Diagonale montante
+                        return true;
+                    }
+                }
+            }
+            return false;
+        }
+
+        // Vérifie une direction pour les pions alignés
+        function checkDirection(row, col, rowDir, colDir, player) {
+            let count = 0;
+            for (let i = 0; i < 4; i++) {
+                const newRow = row + i * rowDir;
+                const newCol = col + i * colDir;
+                if (newRow < 0 || newRow >= connect4Board.length || newCol < 0 || newCol >= connect4Board[0].length ||
+                    connect4Board[newRow][newCol] !== player) {
+                    return false;
+                }
+                count++;
+            }
+            return count === 4;
+        }
+
+        // Réinitialise le plateau de jeu
+        function resetConnect4() {
+            for (let row = 0; row < connect4Board.length; row++) {
+                for (let col = 0; col < connect4Board[0].length; col++) {
+                    connect4Board[row][col] = null;
+                }
+            }
+            connect4CurrentPlayer = 'Red';
+            winnerMessageDiv.textContent = '';
+            resetButton.style.display = 'none';
+            drawConnect4Board();
+        }
+
+        connect4Div.addEventListener('click', handleConnect4Click);
+        drawConnect4Board();
+    </script>
+</body>
+</html>

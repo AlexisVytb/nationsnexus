@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Vérification de l'état des PC</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+        }
+        .status {
+            margin: 10px 0;
+        }
+    </style>
+</head>
+<body>
+    <h1>Vérification de l'état des PC</h1>
+    <div id="statusContainer"></div>
+
+    <script>
+        // Liste des PC avec leurs adresses IP et noms
+        const pcs = [
+            { name: "Arthur", ip: "192.168.1.2" },
+            { name: "Marie", ip: "192.168.1.3" },
+            { name: "Paul", ip: "192.168.1.4" },
+            { name: "Votre PC", ip: "192.168.1.254" }
+        ];
+
+        // Fonction pour vérifier l'état d'un PC
+        async function checkPCStatus(pc) {
+            const statusContainer = document.getElementById('statusContainer');
+            const statusElement = document.createElement('p');
+            statusElement.className = 'status';
+            statusElement.textContent = `${pc.name} : Vérification en cours...`;
+            statusContainer.appendChild(statusElement);
+
+            try {
+                const response = await fetch(`/ping?ip=${pc.ip}`);
+                const data = await response.json();
+                if (data.alive) {
+                    statusElement.textContent = `${pc.name} : PC ON`;
+                } else {
+                    statusElement.textContent = `${pc.name} : PC OFF`;
+                }
+            } catch (error) {
+                statusElement.textContent = `${pc.name} : PC OFF ou inaccessible`;
+            }
+        }
+
+        // Vérifier l'état de chaque PC dans la liste
+        pcs.forEach(checkPCStatus);
+    </script>
+</body>
+</html>

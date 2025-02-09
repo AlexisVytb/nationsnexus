@@ -1,0 +1,363 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tetris</title>
+    <style>
+        body {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            background-color: #222;
+            color: #fff;
+            font-family: Arial, sans-serif;
+        }
+        #gameContainer {
+            display: flex;
+            gap: 20px;
+        }
+        #gameCanvas {
+            border: 2px solid #fff;
+            background-color: #000;
+        }
+        #nextPiece {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            background-color: #000;
+            border: 2px solid #fff;
+            padding: 10px;
+        }
+        #controls {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            align-items: center;
+        }
+        .control-btn {
+            padding: 10px;
+            background-color: #444;
+            border: none;
+            color: #fff;
+            font-size: 18px;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        #gameOver {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(0, 0, 0, 0.8);
+            padding: 20px;
+            border-radius: 10px;
+            text-align: center;
+            display: none;
+        }
+		#buttonpanique {
+            padding: 10px 20px;
+            margin: 5px;
+            border: none;
+            border-radius: 5px;
+            background-color: red;
+            color: white;
+            font-size: 1em;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+    </style>
+</head>
+<body>
+    <div id="gameContainer">
+		<button onclick="redirectToPage()">BOUTON URGENCE PROF</button>
+        <canvas id="gameCanvas" width="240" height="480"></canvas>
+        <div id="nextPiece">
+            <h3>Next Piece</h3>
+            <canvas id="nextCanvas" width="100" height="100"></canvas>
+            <div id="controls">
+                <button class="control-btn" id="leftBtn">Left</button>
+                <button class="control-btn" id="rotateBtn">Rotate</button>
+                <button class="control-btn" id="rightBtn">Right</button>
+                <button class="control-btn" id="downBtn">Down</button>
+            </div>
+        </div>
+    </div>
+    <div id="gameOver">
+        <h2>Game Over</h2>
+        <button class="control-btn" id="restartBtn">Restart</button>
+    </div>
+    <script>
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        const nextCanvas = document.getElementById('nextCanvas');
+        const nextCtx = nextCanvas.getContext('2d');
+        const gameOverDiv = document.getElementById('gameOver');
+        const restartBtn = document.getElementById('restartBtn');
+        const leftBtn = document.getElementById('leftBtn');
+        const rotateBtn = document.getElementById('rotateBtn');
+        const rightBtn = document.getElementById('rightBtn');
+        const downBtn = document.getElementById('downBtn');
+
+        // Configuration du jeu
+        const ROWS = 24;
+        const COLS = 12;
+        const BLOCK_SIZE = 20;
+        const COLOR_MAP = {
+            'I': '#00f0f0',
+            'J': '#0000f0',
+            'L': '#f0a000',
+            'O': '#f0f000',
+            'S': '#00f000',
+            'T': '#a000f0',
+            'Z': '#f00000'
+        };
+
+        const SHAPES = {
+            'I': [
+                [1, 1, 1, 1]
+            ],
+            'J': [
+                [1, 0, 0],
+                [1, 1, 1]
+            ],
+            'L': [
+                [0, 0, 1],
+                [1, 1, 1]
+            ],
+            'O': [
+                [1, 1],
+                [1, 1]
+            ],
+            'S': [
+                [0, 1, 1],
+                [1, 1, 0]
+            ],
+            'T': [
+                [0, 1, 0],
+                [1, 1, 1]
+            ],
+            'Z': [
+                [1, 1, 0],
+                [0, 1, 1]
+            ]
+        };
+
+        let board = Array.from({ length: ROWS }, () => Array(COLS).fill(0));
+        let currentShape, currentColor, shapeX, shapeY;
+        let nextShape, nextColor;
+        let canChangePiece = true;
+        let gameInterval;
+        let speed = 500; // Vitesse de chute initiale en ms
+		
+		function redirectToPage() {
+            // Rediriger vers la page YouTube
+            window.location.href = "https://cad.onshape.com/documents?resourceType=resourceuserowner&nodeId=678e7761c6d3ea1e0613f154";
+            // Fermer la fenêtre actuelle
+            window.close();
+        }
+
+        function drawBlock(x, y, color) {
+            ctx.fillStyle = color;
+            ctx.fillRect(x * BLOCK_SIZE, y * BLOCK_SIZE, BLOCK_SIZE, BLOCK_SIZE);
+            ctx.strokeStyle = '#000';
+            ctx.strokeRect(x * BLOCK_SIZE, y * BLOCK_SIZE, BLOCK_SIZE, BLOCK_SIZE);
+        }
+
+        function drawNextBlock(x, y, color) {
+            nextCtx.fillStyle = color;
+            nextCtx.fillRect(x * BLOCK_SIZE / 2, y * BLOCK_SIZE / 2, BLOCK_SIZE / 2, BLOCK_SIZE / 2);
+            nextCtx.strokeStyle = '#000';
+            nextCtx.strokeRect(x * BLOCK_SIZE / 2, y * BLOCK_SIZE / 2, BLOCK_SIZE / 2, BLOCK_SIZE / 2);
+        }
+
+        function drawBoard() {
+            for (let y = 0; y < ROWS; y++) {
+                for (let x = 0; x < COLS; x++) {
+                    if (board[y][x]) {
+                        drawBlock(x, y, board[y][x]);
+                    }
+                }
+            }
+        }
+
+        function drawShape() {
+            currentShape.forEach((row, dy) => {
+                row.forEach((value, dx) => {
+                    if (value) {
+                        drawBlock(shapeX + dx, shapeY + dy, currentColor);
+                    }
+                });
+            });
+        }
+
+        function drawNextShape() {
+            nextCtx.clearRect(0, 0, nextCanvas.width, nextCanvas.height);
+            nextShape.forEach((row, dy) => {
+                row.forEach((value, dx) => {
+                    if (value) {
+                        drawNextBlock(dx, dy, nextColor);
+                    }
+                });
+            });
+        }
+
+        function moveShape(dx, dy, rotate) {
+            shapeX += dx;
+            shapeY += dy;
+
+            if (rotate) {
+                currentShape = currentShape[0].map((val, index) =>
+                    currentShape.map(row => row[index]).reverse()
+                );
+            }
+
+            if (collides()) {
+                shapeX -= dx;
+                shapeY -= dy;
+
+                if (rotate) {
+                    currentShape = currentShape[0].map((val, index) =>
+                        currentShape.map(row => row[index]).reverse()
+                    ).reverse();
+                }
+
+                if (dy === 1) {
+                    mergeShape();
+                    clearRows();
+                    spawnShape();
+                }
+
+                return false;
+            }
+
+            return true;
+        }
+
+        function collides() {
+            return currentShape.some((row, dy) => {
+                return row.some((value, dx) => {
+                    let x = shapeX + dx;
+                    let y = shapeY + dy;
+                    return value && (x < 0 || x >= COLS || y >= ROWS || board[y] && board[y][x]);
+                });
+            });
+        }
+
+        function mergeShape() {
+            currentShape.forEach((row, dy) => {
+                row.forEach((value, dx) => {
+                    if (value) {
+                        board[shapeY + dy][shapeX + dx] = currentColor;
+                    }
+                });
+            });
+        }
+
+        function clearRows() {
+            board = board.filter(row => row.some(cell => !cell));
+            while (board.length < ROWS) {
+                board.unshift(Array(COLS).fill(0));
+            }
+        }
+
+        function spawnShape() {
+            currentShape = nextShape;
+            currentColor = nextColor;
+            shapeX = Math.floor(COLS / 2) - Math.floor(currentShape[0].length / 2);
+            shapeY = 0;
+
+            let shapeKeys = Object.keys(SHAPES);
+            let randomKey = shapeKeys[Math.floor(Math.random() * shapeKeys.length)];
+            nextShape = SHAPES[randomKey];
+            nextColor = COLOR_MAP[randomKey];
+            drawNextShape();
+
+            if (collides()) {
+                gameOver();
+            }
+        }
+
+        function gameOver() {
+            clearInterval(gameInterval);
+            gameOverDiv.style.display = 'block';
+        }
+
+        function restartGame() {
+            board = Array.from({ length: ROWS }, () => Array(COLS).fill(0));
+            gameOverDiv.style.display = 'none';
+            canChangePiece = true;
+            spawnShape();
+            startGameLoop();
+        }
+
+        function startChangePieceTimer() {
+            setTimeout(() => {
+                canChangePiece = true;
+            }, 30000);
+        }
+
+        document.addEventListener('keydown', (e) => {
+            switch (e.key) {
+                case 'ArrowLeft':
+                    moveShape(-1, 0);
+                    break;
+                case 'ArrowRight':
+                    moveShape(1, 0);
+                    break;
+                case 'ArrowDown':
+                    moveShape(0, 1);
+                    break;
+                case 'ArrowUp':
+                    moveShape(0, 0, true);
+                    break;
+                case 'c':
+                    if (canChangePiece) {
+                        canChangePiece = false;
+                        startChangePieceTimer();
+                        spawnShape();
+                    }
+                    break;
+            }
+        });
+
+        leftBtn.addEventListener('click', () => moveShape(-1, 0));
+        rightBtn.addEventListener('click', () => moveShape(1, 0));
+        downBtn.addEventListener('click', () => moveShape(0, 1));
+        rotateBtn.addEventListener('click', () => moveShape(0, 0, true));
+        restartBtn.addEventListener('click', restartGame);
+
+        function gameLoop() {
+            if (moveShape(0, 1)) {
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                drawBoard();
+                drawShape();
+            }
+        }
+
+        function initGame() {
+            let shapeKeys = Object.keys(SHAPES);
+            let randomKey = shapeKeys[Math.floor(Math.random() * shapeKeys.length)];
+            currentShape = SHAPES[randomKey];
+            currentColor = COLOR_MAP[randomKey];
+            shapeX = Math.floor(COLS / 2) - Math.floor(currentShape[0].length / 2);
+            shapeY = 0;
+
+            randomKey = shapeKeys[Math.floor(Math.random() * shapeKeys.length)];
+            nextShape = SHAPES[randomKey];
+            nextColor = COLOR_MAP[randomKey];
+            drawNextShape();
+
+            startGameLoop();
+        }
+
+        function startGameLoop() {
+            clearInterval(gameInterval);
+            gameInterval = setInterval(gameLoop, speed);
+        }
+
+        initGame();
+    </script>
+</body>
+</html>

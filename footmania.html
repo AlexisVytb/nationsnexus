@@ -1,0 +1,435 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FootMania</title>
+    <style>
+        body {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            background-color: #4CAF50;
+            margin: 0;
+            font-family: Arial, sans-serif;
+            color: white;
+        }
+        #header {
+            text-align: center;
+            margin: 20px;
+        }
+        #modeSelection {
+            margin: 10px 0;
+        }
+        button {
+            padding: 10px 20px;
+            margin: 5px;
+            font-size: 16px;
+            cursor: pointer;
+            border: none;
+            border-radius: 5px;
+            background-color: #008CBA;
+            color: white;
+        }
+        button:hover {
+            background-color: #005f73;
+        }
+        canvas {
+            background-color: #006400;
+            border: 2px solid #fff;
+            border-radius: 10px;
+        }
+        #score {
+            font-size: 24px;
+            margin: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div id="header">
+        <h1>FootMania -  Techno</h1>
+        <div id="modeSelection">
+			<a>Joueur 1           Joueur 2</a>
+			<br>
+			<a>Z Q S D           -> /\ \/ <- </a>
+            <button id="mode1vs1">1 vs 1</button>
+            <button id="mode1vsRobotSimple">1 vs Robot (Simple)</button>
+            <button id="mode1vsRobotDifficile">1 vs Robot (Difficile)</button>
+        </div>
+        <div id="score">Score: Bleu 0 - 0 Rouge</div>
+    </div>
+    <canvas id="gameCanvas" width="800" height="400"></canvas>
+    <script>
+        const canvas = document.getElementById("gameCanvas");
+        const ctx = canvas.getContext("2d");
+
+        const players = {
+            blue: [
+                { x: 50, y: 100, width: 20, height: 50, color: "blue", dx: 0, dy: 0 },
+                { x: 50, y: 200, width: 20, height: 50, color: "blue", dx: 0, dy: 0 },
+                { x: 50, y: 300, width: 20, height: 50, color: "blue", dx: 0, dy: 0 },
+                { x: 150, y: 100, width: 20, height: 50, color: "blue", dx: 0, dy: 0 },
+                { x: 150, y: 200, width: 20, height: 50, color: "blue", dx: 0, dy: 0 }
+            ],
+            red: [
+                { x: 730, y: 100, width: 20, height: 50, color: "red", dx: 0, dy: 0 },
+                { x: 730, y: 200, width: 20, height: 50, color: "red", dx: 0, dy: 0 },
+                { x: 730, y: 300, width: 20, height: 50, color: "red", dx: 0, dy: 0 },
+                { x: 630, y: 100, width: 20, height: 50, color: "red", dx: 0, dy: 0 },
+                { x: 630, y: 200, width: 20, height: 50, color: "red", dx: 0, dy: 0 }
+            ]
+        };
+        const ball = { x: 400, y: 200, radius: 10, color: "white", dx: 0, dy: 0 };
+
+        let currentBluePlayerIndex = 0;
+        let currentRedPlayerIndex = 0;
+        let currentRobotPlayerIndex = 0;
+        let gameMode = null; // "1vs1", "1vsRobotSimple", "1vsRobotDifficile"
+        let score = { blue: 0, red: 0 };
+
+        // Fonction pour dessiner le joueur
+        function drawPlayer(player) {
+            ctx.fillStyle = player.color;
+            ctx.fillRect(player.x, player.y, player.width, player.height);
+        }
+
+        // Fonction pour dessiner les joueurs
+        function drawPlayers() {
+            players.blue.forEach(drawPlayer);
+            players.red.forEach(drawPlayer);
+        }
+
+        // Fonction pour dessiner le ballon avec motifs noirs
+        function drawBall() {
+            ctx.beginPath();
+            ctx.arc(ball.x, ball.y, ball.radius, 0, Math.PI * 2);
+            ctx.fillStyle = ball.color;
+            ctx.fill();
+            ctx.closePath();
+
+            // Dessiner un motif noir
+            ctx.fillStyle = "black";
+            for (let i = 0; i < 360; i += 72) {
+                ctx.beginPath();
+                ctx.moveTo(ball.x, ball.y);
+                ctx.arc(ball.x, ball.y, ball.radius, (i * Math.PI) / 180, ((i + 36) * Math.PI) / 180);
+                ctx.lineTo(ball.x, ball.y);
+                ctx.fill();
+            }
+        }
+
+        // Fonction pour dessiner la flèche au-dessus du joueur actif
+        function drawArrow(player) {
+            ctx.beginPath();
+            ctx.moveTo(player.x + player.width / 2, player.y - 10);
+            ctx.lineTo(player.x + player.width / 2 - 5, player.y - 20);
+            ctx.lineTo(player.x + player.width / 2 + 5, player.y - 20);
+            ctx.closePath();
+            ctx.fillStyle = "yellow";
+            ctx.fill();
+        }
+
+        // Fonction pour dessiner les cages de but
+        function drawGoals() {
+            ctx.fillStyle = "white";
+            ctx.fillRect(0, canvas.height / 2 - 50, 10, 100);
+            ctx.fillRect(canvas.width - 10, canvas.height / 2 - 50, 10, 100);
+        }
+
+        // Fonction pour dessiner le terrain de jeu
+        function drawField() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            drawPlayers();
+            drawBall();
+            drawArrow(players.blue[currentBluePlayerIndex]);
+            drawArrow(players.red[currentRedPlayerIndex]);
+            if (gameMode !== "1vs1") {
+                drawArrow(players.red[currentRobotPlayerIndex]);
+            }
+            drawGoals();
+        }
+
+        // Fonction pour mettre à jour la position du ballon
+        function updateBall() {
+            ball.x += ball.dx;
+            ball.y += ball.dy;
+
+            // Gérer les collisions avec les murs
+            if (ball.x + ball.radius > canvas.width) {
+                ball.x = canvas.width - ball.radius;
+                ball.dx = -ball.dx;
+            }
+            if (ball.x - ball.radius < 0) {
+                ball.x = ball.radius;
+                ball.dx = -ball.dx;
+            }
+            if (ball.y + ball.radius > canvas.height) {
+                ball.y = canvas.height - ball.radius;
+                ball.dy = -ball.dy;
+            }
+            if (ball.y - ball.radius < 0) {
+                ball.y = ball.radius;
+                ball.dy = -ball.dy;
+            }
+
+            // Gérer les collisions avec les cages de but
+            if (ball.x - ball.radius < 10 && ball.y > canvas.height / 2 - 50 && ball.y < canvas.height / 2 + 50) {
+                score.red++;
+                resetBall();
+            } else if (ball.x + ball.radius > canvas.width - 10 && ball.y > canvas.height / 2 - 50 && ball.y < canvas.height / 2 + 50) {
+                score.blue++;
+                resetBall();
+            }
+
+            // Réduire la vitesse du ballon progressivement pour simuler la friction
+            ball.dx *= 0.98;
+            ball.dy *= 0.98;
+
+            updateScore();
+        }
+
+        // Fonction pour réinitialiser le ballon après un but
+        function resetBall() {
+            ball.x = canvas.width / 2;
+            ball.y = canvas.height / 2;
+            ball.dx = 0;
+            ball.dy = 0;
+        }
+
+        // Fonction pour mettre à jour le score affiché
+        function updateScore() {
+            document.getElementById("score").innerText = `Score: Bleu ${score.blue} - ${score.red} Rouge`;
+        }
+
+        // Fonction pour changer de joueur
+        function changePlayer(team) {
+            if (team === "blue") {
+                currentBluePlayerIndex = (currentBluePlayerIndex + 1) % players.blue.length;
+            } else if (team === "red") {
+                currentRedPlayerIndex = (currentRedPlayerIndex + 1) % players.red.length;
+            }
+        }
+
+        // Fonction pour changer de joueur IA
+        function changeRobotPlayer() {
+            currentRobotPlayerIndex = (currentRobotPlayerIndex + 1) % players.red.length;
+        }
+
+        // Fonction pour gérer les contrôles du joueur
+        function handlePlayerControls() {
+            document.addEventListener("keydown", function(event) {
+                // Empêcher la touche Tab de changer les boutons
+                if (event.key === "Tab") {
+                    event.preventDefault();
+                }
+
+                const currentBluePlayer = players.blue[currentBluePlayerIndex];
+                const currentRedPlayer = players.red[currentRedPlayerIndex];
+                switch (event.key) {
+                    case "z": // Z
+                        currentBluePlayer.dy = -4;
+                        break;
+                    case "s": // S
+                        currentBluePlayer.dy = 4;
+                        break;
+                    case "q": // Q
+                        currentBluePlayer.dx = -4;
+                        break;
+                    case "d": // D
+                        currentBluePlayer.dx = 4;
+                        break;
+                    case "ArrowUp":
+                        currentRedPlayer.dy = -4;
+                        break;
+                    case "ArrowDown":
+                        currentRedPlayer.dy = 4;
+                        break;
+                    case "ArrowLeft":
+                        currentRedPlayer.dx = -4;
+                        break;
+                    case "ArrowRight":
+                        currentRedPlayer.dx = 4;
+                        break;
+                    case "Tab":
+                        changePlayer("blue");
+                        break;
+                    case "Control":
+                        changePlayer("red");
+                        break;
+                }
+            });
+
+            document.addEventListener("keyup", function(event) {
+                const currentBluePlayer = players.blue[currentBluePlayerIndex];
+                const currentRedPlayer = players.red[currentRedPlayerIndex];
+                switch (event.key) {
+                    case "z": // Z
+                    case "s": // S
+                        currentBluePlayer.dy = 0;
+                        break;
+                    case "q": // Q
+                    case "d": // D
+                        currentBluePlayer.dx = 0;
+                        break;
+                    case "ArrowUp":
+                    case "ArrowDown":
+                        currentRedPlayer.dy = 0;
+                        break;
+                    case "ArrowLeft":
+                    case "ArrowRight":
+                        currentRedPlayer.dx = 0;
+                        break;
+                }
+            });
+        }
+
+        // Fonction pour gérer les collisions entre les joueurs
+        function checkPlayerCollisions() {
+            function isColliding(player1, player2) {
+                return !(player1.x + player1.width < player2.x ||
+                         player1.x > player2.x + player2.width ||
+                         player1.y + player1.height < player2.y ||
+                         player1.y > player2.y + player2.height);
+            }
+
+            function resolveCollision(player1, player2) {
+                const overlapX = (player1.width + player2.width) / 2 - Math.abs(player1.x - player2.x);
+                const overlapY = (player1.height + player2.height) / 2 - Math.abs(player1.y - player2.y);
+
+                if (overlapX < overlapY) {
+                    if (player1.x < player2.x) {
+                        player1.x -= overlapX / 2;
+                        player2.x += overlapX / 2;
+                    } else {
+                        player1.x += overlapX / 2;
+                        player2.x -= overlapX / 2;
+                    }
+                } else {
+                    if (player1.y < player2.y) {
+                        player1.y -= overlapY / 2;
+                        player2.y += overlapY / 2;
+                    } else {
+                        player1.y += overlapY / 2;
+                        player2.y -= overlapY / 2;
+                    }
+                }
+            }
+
+            players.blue.forEach((player1, index1) => {
+                players.blue.forEach((player2, index2) => {
+                    if (index1 !== index2 && isColliding(player1, player2)) {
+                        resolveCollision(player1, player2);
+                    }
+                });
+
+                players.red.forEach((player2) => {
+                    if (isColliding(player1, player2)) {
+                        resolveCollision(player1, player2);
+                    }
+                });
+            });
+
+            players.red.forEach((player1, index1) => {
+                players.red.forEach((player2, index2) => {
+                    if (index1 !== index2 && isColliding(player1, player2)) {
+                        resolveCollision(player1, player2);
+                    }
+                });
+            });
+        }
+
+        // Fonction pour mettre à jour la position des joueurs
+        function updatePlayers() {
+            players.blue.forEach(player => {
+                player.x += player.dx;
+                player.y += player.dy;
+
+                // Empêcher les joueurs de sortir du terrain
+                player.x = Math.max(0, Math.min(canvas.width - player.width, player.x));
+                player.y = Math.max(0, Math.min(canvas.height - player.height, player.y));
+
+                // Gérer les collisions avec le ballon
+                if (ball.x - ball.radius < player.x + player.width && ball.x + ball.radius > player.x &&
+                    ball.y + ball.radius > player.y && ball.y - ball.radius < player.y + player.height) {
+                    const angle = Math.atan2(ball.y - (player.y + player.height / 2), ball.x - (player.x + player.width / 2));
+                    ball.dx = Math.cos(angle) * 5;
+                    ball.dy = Math.sin(angle) * 5;
+                }
+            });
+
+            players.red.forEach(player => {
+                player.x += player.dx;
+                player.y += player.dy;
+
+                // Empêcher les joueurs de sortir du terrain
+                player.x = Math.max(0, Math.min(canvas.width - player.width, player.x));
+                player.y = Math.max(0, Math.min(canvas.height - player.height, player.y));
+
+                // Gérer les collisions avec le ballon
+                if (ball.x - ball.radius < player.x + player.width && ball.x + ball.radius > player.x &&
+                    ball.y + ball.radius > player.y && ball.y - ball.radius < player.y + player.height) {
+                    const angle = Math.atan2(ball.y - (player.y + player.height / 2), ball.x - (player.x + player.width / 2));
+                    ball.dx = Math.cos(angle) * 5;
+                    ball.dy = Math.sin(angle) * 5;
+                }
+            });
+
+            checkPlayerCollisions();
+        }
+
+        // Fonction pour gérer les mouvements du robot
+        function updateRobot() {
+            if (gameMode === "1vsRobotSimple" || gameMode === "1vsRobotDifficile") {
+                const robot = players.red[currentRobotPlayerIndex];
+
+                if (ball.x < robot.x) {
+                    robot.dx = gameMode === "1vsRobotSimple" ? -2 : -4;
+                } else if (ball.x > robot.x + robot.width) {
+                    robot.dx = gameMode === "1vsRobotSimple" ? 2 : 4;
+                } else {
+                    robot.dx = 0;
+                }
+
+                if (ball.y < robot.y) {
+                    robot.dy = gameMode === "1vsRobotSimple" ? -2 : -4;
+                } else if (ball.y > robot.y + robot.height) {
+                    robot.dy = gameMode === "1vsRobotSimple" ? 2 : 4;
+                } else {
+                    robot.dy = 0;
+                }
+
+                // Changer de joueur robotique à intervalles réguliers
+                if (Math.random() < 0.01) {
+                    changeRobotPlayer();
+                }
+            }
+        }
+
+        // Fonction pour démarrer le jeu
+        function startGame(mode) {
+            gameMode = mode;
+            handlePlayerControls();
+            setInterval(function() {
+                updateBall();
+                updatePlayers();
+                updateRobot();
+                drawField();
+            }, 30);
+        }
+
+        // Sélection du mode de jeu
+        document.getElementById("mode1vs1").addEventListener("click", function() {
+            startGame("1vs1");
+        });
+        document.getElementById("mode1vsRobotSimple").addEventListener("click", function() {
+            startGame("1vsRobotSimple");
+        });
+        document.getElementById("mode1vsRobotDifficile").addEventListener("click", function() {
+            startGame("1vsRobotDifficile");
+        });
+
+        // Initialiser le terrain de jeu
+        drawField();
+    </script>
+</body>
+</html>

@@ -1,0 +1,276 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Morpion</title>
+    <style>
+        body {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            margin: 0;
+            font-family: Arial, sans-serif;
+            background: linear-gradient(to right, #ece9e6, #ffffff);
+        }
+        .board {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            grid-template-rows: repeat(3, 1fr);
+            gap: 0;
+            width: 300px;
+            height: 300px;
+            margin: auto;
+        }
+        .cell {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            width: 100px;
+            height: 100px;
+            background-color: #f0f0f0;
+            cursor: pointer;
+            font-size: 2.5em;
+            border: 1px solid black;
+        }
+        .cell.x {
+            color: red;
+            font-weight: bold;
+        }
+        .cell.o {
+            color: blue;
+            font-weight: bold;
+        }
+        button {
+            padding: 10px 20px;
+            margin: 5px;
+            border: none;
+            border-radius: 5px;
+            background-color: #4CAF50;
+            color: white;
+            font-size: 1em;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+			
+		buttonpanique {
+            padding: 10px 20px;
+            margin: 5px;
+            border: none;
+            border-radius: 5px;
+            background-color: red;
+            color: white;
+            font-size: 1em;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+        }
+        button:hover {
+            background-color: #45a049;
+        }
+        h2 {
+            margin-top: 0;
+        }
+        #winnerMessage {
+            margin-top: 20px;
+            font-size: 1.5em;
+            color: #333;
+        }
+    </style>
+</head>
+<body>
+    <button onclick="location.href='secrete.html'">Retour</button>
+    <h2>Morpion - Techno</h2>
+    <button onclick="setOpponent('human')">Jouer contre Humain</button>
+    <button onclick="setOpponent('robotSimple')">Jouer contre Robot (Simple)</button>
+    <button onclick="setOpponent('robotHard')">Jouer contre Robot (Difficile)</button>
+	<button onclick="redirectToPage()">BOUTON URGENCE PROF</button>
+    <div class="board" id="ticTacToeBoard">
+        <div class="cell" data-index="0"></div>
+        <div class="cell" data-index="1"></div>
+        <div class="cell" data-index="2"></div>
+        <div class="cell" data-index="3"></div>
+        <div class="cell" data-index="4"></div>
+        <div class="cell" data-index="5"></div>
+        <div class="cell" data-index="6"></div>
+        <div class="cell" data-index="7"></div>
+        <div class="cell" data-index="8"></div>
+    </div>
+    <div id="winnerMessage"></div>
+    <button id="resetButton" style="display: none;" onclick="resetTicTacToe()">Rejouer</button>
+    <script>
+        let currentPlayer = 'X';
+        let opponent = 'human';
+		
+		function redirectToPage() {
+            window.open('https://cad.onshape.com/documents?resourceType=resourceuserowner&nodeId=678e7761c6d3ea1e0613f154', '_blank', 'noopener,noreferrer');
+            // Fermer la fenêtre actuelle
+            window.close();
+        }
+
+        function setOpponent(op) {
+            opponent = op;
+            resetTicTacToe();
+        }
+
+        function resetTicTacToe() {
+            const cells = document.querySelectorAll('.cell');
+            cells.forEach(cell => {
+                cell.textContent = '';
+                cell.classList.remove('x', 'o');
+            });
+            currentPlayer = 'X';
+            document.getElementById('winnerMessage').textContent = '';
+            document.getElementById('resetButton').style.display = 'none';
+        }
+
+        function handleClick(event) {
+            const cell = event.target;
+            if (cell.textContent === '' && !document.getElementById('winnerMessage').textContent) {
+                cell.textContent = currentPlayer;
+                cell.classList.add(currentPlayer.toLowerCase());
+                const winner = checkWin();
+                if (winner) {
+                    document.getElementById('winnerMessage').textContent = `${winner} a gagné!`;
+                    document.getElementById('resetButton').style.display = 'block';
+                } else if (checkDraw()) {
+                    document.getElementById('winnerMessage').textContent = 'Match nul!';
+                    document.getElementById('resetButton').style.display = 'block';
+                } else {
+                    currentPlayer = currentPlayer === 'X' ? 'O' : 'X';
+                    if (opponent !== 'human' && currentPlayer === 'O') {
+                        setTimeout(() => {
+                            if (opponent === 'robotSimple') {
+                                robotMoveSimple();
+                            } else if (opponent === 'robotHard') {
+                                robotMoveHard();
+                            }
+                        }, 500);
+                    }
+                }
+            }
+        }
+
+        function robotMoveSimple() {
+            const emptyCells = [...document.querySelectorAll('.cell')].filter(cell => cell.textContent === '');
+            const randomCell = emptyCells[Math.floor(Math.random() * emptyCells.length)];
+            randomCell.textContent = currentPlayer;
+            randomCell.classList.add(currentPlayer.toLowerCase());
+            const winner = checkWin();
+            if (winner) {
+                document.getElementById('winnerMessage').textContent = `${winner} a gagné!`;
+                document.getElementById('resetButton').style.display = 'block';
+            } else if (checkDraw()) {
+                document.getElementById('winnerMessage').textContent = 'Match nul!';
+                document.getElementById('resetButton').style.display = 'block';
+            } else {
+                currentPlayer = 'X';
+            }
+        }
+
+        function robotMoveHard() {
+            const board = Array.from(document.querySelectorAll('.cell')).map(cell => cell.textContent);
+            const bestMove = minimax(board, currentPlayer).index;
+            const cell = document.querySelector(`.cell[data-index="${bestMove}"]`);
+            cell.textContent = currentPlayer;
+            cell.classList.add(currentPlayer.toLowerCase());
+            const winner = checkWin();
+            if (winner) {
+                document.getElementById('winnerMessage').textContent = `${winner} a gagné!`;
+                document.getElementById('resetButton').style.display = 'block';
+            } else if (checkDraw()) {
+                document.getElementById('winnerMessage').textContent = 'Match nul!';
+                document.getElementById('resetButton').style.display = 'block';
+            } else {
+                currentPlayer = 'X';
+            }
+        }
+
+        function minimax(newBoard, player) {
+            const availSpots = newBoard.map((val, index) => val === '' ? index : null).filter(val => val !== null);
+
+            if (checkWinCondition(newBoard, 'X')) {
+                return { score: -10 };
+            } else if (checkWinCondition(newBoard, 'O')) {
+                return { score: 10 };
+            } else if (availSpots.length === 0) {
+                return { score: 0 };
+            }
+
+            const moves = [];
+            for (let i = 0; i < availSpots.length; i++) {
+                const move = {};
+                move.index = availSpots[i];
+                newBoard[availSpots[i]] = player;
+
+                if (player === 'O') {
+                    const result = minimax(newBoard, 'X');
+                    move.score = result.score;
+                } else {
+                    const result = minimax(newBoard, 'O');
+                    move.score = result.score;
+                }
+
+                newBoard[availSpots[i]] = '';
+                moves.push(move);
+            }
+
+            let bestMove;
+            if (player === 'O') {
+                let bestScore = -10000;
+                for (let i = 0; i < moves.length; i++) {
+                    if (moves[i].score > bestScore) {
+                        bestScore = moves[i].score;
+                        bestMove = i;
+                    }
+                }
+            } else {
+                let bestScore = 10000;
+                for (let i = 0; i < moves.length; i++) {
+                    if (moves[i].score < bestScore) {
+                        bestScore = moves[i].score;
+                        bestMove = i;
+                    }
+                }
+            }
+
+            return moves[bestMove];
+        }
+
+        function checkWinCondition(board, player) {
+            const winConditions = [
+                [0, 1, 2],
+                [3, 4, 5],
+                [6, 7, 8],
+                [0, 3, 6],
+                [1, 4, 7],
+                [2, 5, 8],
+                [0, 4, 8],
+                [2, 4, 6]
+            ];
+            return winConditions.some(condition => {
+                return condition.every(index => board[index] === player);
+            });
+        }
+
+        function checkWin() {
+            const cells = document.querySelectorAll('.cell');
+            const board = Array.from(cells).map(cell => cell.textContent);
+            if (checkWinCondition(board, 'X')) {
+                return 'X';
+            } else if (checkWinCondition(board, 'O')) {
+                return 'O';
+            } else {
+                return null;
+            }
+        }
+
+        function checkDraw() {
+            const cells = document.querySelectorAll('.cell');
+            return [...cells].every(cell => cell.textContent !== '');
+        }
+
+        document.querySelectorAll('.cell').forEach(cell => cell.addEventListener('click', handleClick));
+    </script>
+</body>
+</html>

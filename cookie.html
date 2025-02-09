@@ -1,0 +1,452 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cookie Clicker</title>
+    <style>
+        body {
+            font-family: 'Comic Sans MS', cursive, sans-serif;
+            text-align: center;
+            background-color: #ffebcd;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+            overflow: hidden;
+        }
+        .container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            margin-top: 50px;
+        }
+        #cookie {
+            width: 200px;
+            height: 200px;
+            background-color: #d2691e;
+            border-radius: 50%;
+            position: relative;
+            margin: 20px auto;
+            cursor: pointer;
+            box-shadow: 0 0 20px rgba(0, 0, 0, 0.3);
+            transition: transform 1s;
+        }
+        #cookie::before,
+        #cookie::after {
+            content: "";
+            background-color: #8b4513;
+            border-radius: 50%;
+            position: absolute;
+        }
+        #cookie::before {
+            width: 40px;
+            height: 40px;
+            top: 30px;
+            left: 50px;
+        }
+        #cookie::after {
+            width: 30px;
+            height: 30px;
+            top: 100px;
+            left: 120px;
+        }
+        #stats {
+            margin: 20px;
+            font-size: 24px;
+            color: #8b4513;
+        }
+        #upgrades, #clickUpgrades {
+            position: fixed;
+            top: 50px;
+            width: 300px;
+            max-height: calc(100vh - 100px);
+            overflow-y: auto;
+            border: 2px solid black; /* Ajoute une bordure noire */
+            background-color: #fff;
+            padding: 10px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+        }
+        #upgrades {
+            right: 20px;
+        }
+        #clickUpgrades {
+            left: 20px;
+        }
+        .upgrade {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin: 10px 0;
+            padding: 10px;
+            font-size: 18px;
+            cursor: pointer;
+            background-color: #f4a460;
+            border-radius: 10px;
+            transition: background-color 0.3s;
+        }
+        .upgrade.locked {
+            background-color: #d3d3d3;
+            cursor: not-allowed;
+        }
+        .upgrade img {
+            width: 40px;
+            height: 40px;
+            margin-right: 10px;
+        }
+        .upgrade:hover {
+            background-color: #e9967a;
+        }
+        .upgrade.locked img {
+            width: 40px;
+            height: 40px;
+        }
+        #achievements {
+            margin: 20px;
+        }
+        #showAchievements {
+            margin: 10px;
+            padding: 10px;
+            font-size: 16px;
+            cursor: pointer;
+            background-color: #ff6347;
+            color: white;
+            border: none;
+            border-radius: 10px;
+            transition: background-color 0.3s;
+        }
+        #showAchievements:hover {
+            background-color: #ff4500;
+        }
+        #modal {
+            display: none;
+            position: fixed;
+            z-index: 1;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            overflow: auto;
+            background-color: rgba(0,0,0,0.4);
+        }
+        #modal-content {
+            background-color: #fff;
+            margin: 15% auto;
+            padding: 20px;
+            border: 1px solid #888;
+            width: 80%;
+            max-width: 600px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.3);
+        }
+        #closeModal {
+            color: #aaa;
+            float: right;
+            font-size: 28px;
+            font-weight: bold;
+        }
+        #closeModal:hover,
+        #closeModal:focus {
+            color: black;
+            text-decoration: none;
+            cursor: pointer;
+        }
+        .achievementItem {
+            color: #ff6347;
+            display: flex;
+            align-items: center;
+        }
+        .achievementItem img {
+            width: 30px;
+            height: 30px;
+            margin-right: 10px;
+        }
+        .achieved {
+            text-decoration: line-through;
+            color: #32cd32;
+        }
+        .notification {
+            position: fixed;
+            top: 10px;
+            right: 10px;
+            background-color: #32cd32;
+            color: white;
+            padding: 10px;
+            border-radius: 5px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.3);
+            display: none;
+        }
+        .floating-text {
+            position: absolute;
+            color: white; /* Couleur du texte */
+            font-size: 24px;
+            pointer-events: none;
+            animation: float 1s ease-out forwards;
+            text-shadow: 
+                -1px -1px 0 #000,  
+                 1px -1px 0 #000,
+                -1px  1px 0 #000,
+                 1px  1px 0 #000; /* Contour noir */
+        }
+        @keyframes float {
+            0% {
+                opacity: 1;
+                transform: translateY(0);
+            }
+            100% {
+                opacity: 0;
+                transform: translateY(-50px);
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Cookie Clicker</h1>
+        <div id="cookie"></div>
+        <div id="stats">
+            <p>Cookies: <span id="cookieCount">0</span></p>
+            <p>Cookies par seconde: <span id="cps">0</span></p>
+        </div>
+        <button id="showAchievements">Voir les succès</button>
+        <div id="achievements" class="hidden">
+            <h2>Succès</h2>
+            <ul id="achievementList"></ul>
+        </div>
+    </div>
+    <div id="upgrades">
+        <!-- Dynamically populated with JavaScript -->
+    </div>
+    <div id="clickUpgrades">
+        <!-- Dynamically populated with JavaScript -->
+    </div>
+    <div id="modal">
+        <div id="modal-content">
+            <span id="closeModal">&times;</span>
+            <h2>Succès</h2>
+            <ul id="modalAchievementList"></ul>
+        </div>
+    </div>
+    <div id="notification" class="notification"></div>
+	<script>
+let cookieCount = 0;
+let cookiesPerSecond = 0;
+let cookiesPerClick = 1;
+
+const cookieElement = document.getElementById('cookie');
+const cookieCountElement = document.getElementById('cookieCount');
+const cpsElement = document.getElementById('cps');
+const achievementList = document.getElementById('achievementList');
+const upgradesContainer = document.getElementById('upgrades');
+const clickUpgradesContainer = document.getElementById('clickUpgrades');
+const showAchievementsButton = document.getElementById('showAchievements');
+const achievementsModal = document.getElementById('modal');
+const closeModalButton = document.getElementById('closeModal');
+const modalAchievementList = document.getElementById('modalAchievementList');
+const notificationElement = document.getElementById('notification');
+
+const upgrades = [
+    { name: "Curseur", cps: 0.1, cost: 5, icon: 'https://cdn-icons-png.flaticon.com/512/272/272357.png', required: 0 },
+    { name: "Grand-mère", cps: 1, cost: 25, icon: 'https://cdn-icons-png.flaticon.com/512/2921/2921820.png', required: 1 },
+    { name: "Ferme", cps: 5, cost: 70, icon: 'https://cdn-icons-png.flaticon.com/512/2909/2909820.png', required: 2 },
+    { name: "Mine", cps: 10, cost: 100, icon: 'https://cdn-icons-png.flaticon.com/512/2903/2903062.png', required: 3 },
+    { name: "Usine", cps: 25, cost: 150, icon: 'https://cdn-icons-png.flaticon.com/512/2933/2933186.png', required: 4 },
+    { name: "Banque", cps: 40, cost: 230, icon: 'https://cdn-icons-png.flaticon.com/512/2931/2931640.png', required: 5 },
+    { name: "Temple", cps: 60, cost: 400, icon: 'https://cdn-icons-png.flaticon.com/512/2942/2942586.png', required: 6 },
+    { name: "Tour du sorcier", cps: 90, cost: 600, icon: 'https://cdn-icons-png.flaticon.com/512/2950/2950624.png', required: 7 },
+    { name: "Navire spatial", cps: 130, cost: 900, icon: 'https://cdn-icons-png.flaticon.com/512/2903/2903071.png', required: 8 },
+    { name: "Machine à temps", cps: 170, cost: 1500, icon: 'https://cdn-icons-png.flaticon.com/512/2949/2949199.png', required: 9 },
+    { name: "Laboratoire", cps: 200, cost: 2500, icon: 'https://cdn-icons-png.flaticon.com/512/2951/2951615.png', required: 10 },
+    { name: "Portail", cps: 250, cost: 4000, icon: 'https://cdn-icons-png.flaticon.com/512/2941/2941055.png', required: 11 },
+    { name: "Matrix", cps: 300, cost: 7000, icon: 'https://cdn-icons-png.flaticon.com/512/2931/2931978.png', required: 12 },
+    { name: "Simulation", cps: 370, cost: 10000, icon: 'https://cdn-icons-png.flaticon.com/512/2930/2930769.png', required: 13 },
+    { name: "Réalité virtuelle", cps: 450, cost: 50000, icon: 'https://cdn-icons-png.flaticon.com/512/2942/2942225.png', required: 14 },
+    { name: "Intelligence artificielle", cps: 700, cost: 100000, icon: 'https://cdn-icons-png.flaticon.com/512/2950/2950677.png', required: 15 },
+    { name: "Nanotechnologie", cps: 900, cost: 500000, icon: 'https://cdn-icons-png.flaticon.com/512/2949/2949178.png', required: 16 },
+    { name: "Robotique", cps: 1000, cost: 1000000, icon: 'https://cdn-icons-png.flaticon.com/512/2941/2941570.png', required: 17 },
+    { name: "Voyage spatial", cps: 1500, cost: 5000000, icon: 'https://cdn-icons-png.flaticon.com/512/2932/2932433.png', required: 18 },
+    { name: "Colonisation", cps: 2500, cost: 10000000, icon: 'https://cdn-icons-png.flaticon.com/512/2952/2952363.png', required: 19 },
+    { name: "Le Prof De Techno", cps: 10000000, cost: 5000000000, icon: 'https://cdn-icons-png.flaticon.com/512/2946/2946250.png', required: 20 },
+];
+
+const clickUpgrades = [
+    { name: "Clique amélioré", clickValue: 5, cost: 500, icon: 'https://cdn-icons-png.flaticon.com/512/1041/1041916.png' },
+    { name: "Clique Futuristique", clickValue: 15, cost: 10000, icon: 'https://cdn-icons-png.flaticon.com/512/1041/1041916.png' },
+    { name: "Clique Monstrueux", clickValue: 25, cost: 50000, icon: 'https://cdn-icons-png.flaticon.com/512/1041/1041916.png' },
+    { name: "Clique Merveilleux", clickValue: 50, cost: 1000000, icon: 'https://cdn-icons-png.flaticon.com/512/1041/1041916.png' },
+];
+
+const achievements = [
+    { name: "Première Clique!", threshold: 1, icon: 'https://cdn-icons-png.flaticon.com/512/1041/1041916.png' },
+    { name: "100 Cookies!", threshold: 100, icon: 'https://cdn-icons-png.flaticon.com/512/1041/1041916.png' },
+    { name: "500 Cookies!", threshold: 500, icon: 'https://cdn-icons-png.flaticon.com/512/1041/1041916.png' },
+    { name: "1000 Cookies!", threshold: 1000, icon: 'https://cdn-icons-png.flaticon.com/512/1041/1041916.png' },
+    { name: "5000 Cookies!", threshold: 5000, icon: 'https://cdn-icons-png.flaticon.com/512/1041/1041916.png' },
+    { name: "10000 Cookies!", threshold: 10000, icon: 'https://cdn-icons-png.flaticon.com/512/1041/1041916.png' },
+    { name: "50000 Cookies!", threshold: 50000, icon: 'https://cdn-icons-png.flaticon.com/512/1041/1041916.png' },
+    { name: "100000 Cookies!", threshold: 100000, icon: 'https://cdn-icons-png.flaticon.com/512/1041/1041916.png' },
+    { name: "500000 Cookies!", threshold: 500000, icon: 'https://cdn-icons-png.flaticon.com/512/1041/1041916.png' },
+    { name: "1 Million Cookies!", threshold: 1000000, icon: 'https://cdn-icons-png.flaticon.com/512/1041/1041916.png' },
+    { name: "10 Million Cookies!", threshold: 10000000, icon: 'https://cdn-icons-png.flaticon.com/512/1041/1041916.png' },
+    { name: "100 Million Cookies!", threshold: 100000000, icon: 'https://cdn-icons-png.flaticon.com/512/1041/1041916.png' },
+    { name: "500 Million Cookies!", threshold: 500000000, icon: 'https://cdn-icons-png.flaticon.com/512/1041/1041916.png' },
+    { name: "1 Billion Cookies!", threshold: 1000000000, icon: 'https://cdn-icons-png.flaticon.com/512/1041/1041916.png' },
+    { name: "10 Billion Cookies!", threshold: 10000000000, icon: 'https://cdn-icons-png.flaticon.com/512/1041/1041916.png' },
+    { name: "La Fin du jeu!", threshold: 'terraforming', icon: 'https://cdn-icons-png.flaticon.com/512/2946/2946250.png' },
+];
+
+function updateDisplay() {
+    cookieCountElement.textContent = Math.floor(cookieCount);
+    cpsElement.textContent = cookiesPerSecond.toFixed(1);
+}
+
+function showNotification(message) {
+    notificationElement.textContent = message;
+    notificationElement.style.display = 'block';
+    setTimeout(() => {
+        notificationElement.style.display = 'none';
+    }, 3000);
+}
+
+function checkAchievements() {
+    achievements.forEach((achievement, index) => {
+        if (cookieCount >= achievement.threshold && !document.getElementById(`achievement${index}`)) {
+            const li = document.createElement('li');
+            li.innerHTML = `<img src="${achievement.icon}" alt="Icon">${achievement.name}`;
+            li.id = `achievement${index}`;
+            li.classList.add('achievementItem');
+            achievementList.appendChild(li);
+
+            const modalLi = document.createElement('li');
+            modalLi.innerHTML = `<img src="${achievement.icon}" alt="Icon">${achievement.name}`;
+            modalLi.id = `modalAchievement${index}`;
+            modalLi.classList.add('achievementItem');
+            modalAchievementList.appendChild(modalLi);
+
+            showNotification(`Succès débloqué: ${achievement.name}`);
+        }
+        if (cookieCount >= achievement.threshold) {
+            document.getElementById(`achievement${index}`).classList.add('achieved');
+            document.getElementById(`modalAchievement${index}`).classList.add('achieved');
+        }
+    });
+}
+
+function createFloatingText(text, x, y) {
+    const floatingText = document.createElement('div');
+    floatingText.className = 'floating-text';
+    floatingText.textContent = text;
+    floatingText.style.left = `${x}px`;
+    floatingText.style.top = `${y}px`;
+    document.body.appendChild(floatingText);
+
+    setTimeout(() => {
+        floatingText.remove();
+    }, 1000);
+}
+
+cookieElement.addEventListener('click', (event) => {
+    cookieCount += cookiesPerClick;
+    updateDisplay();
+    checkAchievements();
+    createFloatingText(`+${cookiesPerClick}`, event.clientX, event.clientY);
+});
+
+function createClickUpgradeButton(clickUpgrade, index) {
+    const button = document.createElement('div');
+    button.className = 'upgrade';
+    button.id = `clickUpgrade${index}`;
+    button.innerHTML = `<img src="${clickUpgrade.icon}" alt="Icon"><span>${clickUpgrade.name} (+${clickUpgrade.clickValue} par clic)</span><span>${clickUpgrade.cost} cookies</span>`;
+    button.addEventListener('click', () => {
+        if (cookieCount >= clickUpgrade.cost) {
+            cookieCount -= clickUpgrade.cost;
+            cookiesPerClick = clickUpgrade.clickValue;
+            button.classList.add('locked');
+            button.classList.remove('upgrade');
+            updateDisplay();
+        }
+    });
+
+    return button;
+}
+
+clickUpgrades.forEach((clickUpgrade, index) => {
+    clickUpgradesContainer.appendChild(createClickUpgradeButton(clickUpgrade, index));
+});
+
+function createUpgradeButton(upgrade, index) {
+    const button = document.createElement('div');
+    button.className = 'upgrade locked';
+    button.id = `upgrade${index}`;
+    button.innerHTML = `
+        <img src="${upgrade.icon}" alt="Icon">
+        <span>${upgrade.name} (+${upgrade.cps}/s)</span>
+        <span>${upgrade.cost} cookies</span>`;
+    button.addEventListener('click', () => {
+        if (cookieCount >= upgrade.cost && button.classList.contains('unlocked')) {
+            cookieCount -= upgrade.cost;
+            cookiesPerSecond += upgrade.cps;
+            upgrade.cost = Math.floor(upgrade.cost * 1.15);
+            button.innerHTML = `
+                <img src="${upgrade.icon}" alt="Icon">
+                <span>${upgrade.name} (+${upgrade.cps}/s)</span>
+                <span>${upgrade.cost} cookies</span>`;
+            updateDisplay();
+            checkUpgrades();
+
+            if (upgrade.name === "Le Prof De Techno") {
+                triggerAchievement('terraforming');
+            }
+        }
+    });
+
+    if (index === 0) {
+        button.classList.add('unlocked');
+        button.classList.remove('locked');
+    }
+
+    return button;
+}
+
+function checkUpgrades() {
+    const purchasedUpgrades = upgrades.filter((upgrade, index) => {
+        const button = document.getElementById(`upgrade${index}`);
+        return button && button.classList.contains('unlocked') && !button.classList.contains('locked');
+    }).length;
+
+    upgrades.forEach((upgrade, index) => {
+        const button = document.getElementById(`upgrade${index}`);
+        if (button && purchasedUpgrades >= upgrade.required) {
+            button.classList.add('unlocked');
+            button.classList.remove('locked');
+        }
+    });
+}
+
+upgrades.forEach((upgrade, index) => {
+    upgradesContainer.appendChild(createUpgradeButton(upgrade, index));
+});
+
+setInterval(() => {
+    cookieCount += cookiesPerSecond;
+    updateDisplay();
+    checkAchievements();
+}, 1000);
+
+updateDisplay();
+
+showAchievementsButton.addEventListener('click', () => {
+    achievementsModal.style.display = 'block';
+});
+
+closeModalButton.addEventListener('click', () => {
+    achievementsModal.style.display = 'none';
+});
+
+window.addEventListener('click', (event) => {
+    if (event.target === achievementsModal) {
+        achievementsModal.style.display = 'none';
+    }
+});
+</script>
+</body>
+</html>

